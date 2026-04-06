@@ -1,21 +1,7 @@
 ## 📦 自用包AI最近自动更新
-- 更新时间：2026-04-06 22:35:51
-- 更新文件数：1847
+- 更新时间：2026-04-06 22:37:26
+- 更新文件数：1
 - 更新插件：
-  - OpenClash
-  - aria2
-  - autoshare
-  - clashoo
-  - filebrowser
-  - luci-app-adguardhome
-  - luci-app-advancedplus
-  - luci-app-argon-config
-  - luci-app-aria2
-  - luci-app-bandix
-  - luci-app-clashoo
-  - luci-app-control-timewol
-  - luci-app-control-webrestriction
-  - luci-app-control-weburl
-  - luci-app-cpu-status
+  - 
 ---
 
