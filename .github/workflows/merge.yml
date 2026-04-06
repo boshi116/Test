@@ -1,0 +1,196 @@
+name: my-packages
+on:
+  push:
+    paths:
+      - '.github/workflows/merge.yml'
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: 强制拉取远程最新代码（解决冲突）
+        run: |
+          git pull --force --rebase https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git main
+
+      - name: 清理残留子模块与文件
+        run: |
+          rm -rf .gitmodules OpenAppFilter
+          git submodule deinit --all -f 2>/dev/null || true
+          git rm --cached OpenAppFilter 2>/dev/null || true
+
+      - name: 设置 Git 与时区
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email actions@github.com
+          sudo timedatectl set-timezone Asia/Shanghai || true
+
+      - name: 清理环境并并行下载插件
+        run: |
+          set -euo pipefail
+          shopt -s extglob
+          
+          echo "🧹 清理工作目录..."
+          rm -rf !( .github | README.md | .gitignore | .git )
+          mkdir -p opd
+
+          git_clone() {
+            local repo="$1"
+            local dir="$2"
+            echo "🔽 下载 → opd/$dir"
+            git clone --depth 1 "$repo" "opd/$dir"
+          }
+
+          echo "🚀 开始并行下载所有插件..."
+
+          {
+            git_clone https://github.com/kiddin9/luci-app-dnsfilter luci-app-dnsfilter
+            git_clone https://github.com/kiddin9/aria2 aria2
+            git_clone https://github.com/kiddin9/autoshare autoshare
+            git_clone https://github.com/kiddin9/luci-app-wizard luci-app-wizard
+          } &
+
+          {
+            git_clone https://github.com/riverscn/openwrt-iptvhelper openwrt-iptvhelper
+            git_clone https://github.com/kongfl888/luci-app-timedreboot luci-app-timedreboot
+          } &
+
+          {
+            git_clone https://github.com/sirpdboy/luci-app-timecontrol luci-app-timecontrol
+            git_clone https://github.com/sirpdboy/luci-app-advancedplus luci-app-advancedplus
+            git_clone https://github.com/sirpdboy/luci-app-lucky luci-app-lucky
+            git_clone https://github.com/sirpdboy/luci-app-partexp luci-app-partexp
+            git_clone https://github.com/sirpdboy/netspeedtest netspeedtest
+            git_clone https://github.com/sirpdboy/luci-app-watchdog luci-app-watchdog
+            git_clone https://github.com/sirpdboy/luci-app-parentcontrol luci-app-parentcontrol
+            git_clone https://github.com/sirpdboy/luci-app-eqosplus luci-app-eqosplus
+            git_clone https://github.com/sirpdboy/luci-app-taskplan luci-app-taskplan
+            git_clone https://github.com/sirpdboy/luci-app-netwizard luci-app-netwizard
+          } &
+
+          {
+            git_clone https://github.com/brvphoenix/luci-app-wrtbwmon luci-app-wrtbwmon
+            git_clone https://github.com/brvphoenix/wrtbwmon wrtbwmon
+            git_clone https://github.com/sbwml/luci-app-mosdns luci-app-mosdns
+            git_clone https://github.com/UnblockNeteaseMusic/luci-app-unblockneteasemusic luci-app-unblockneteasemusic
+          } &
+
+          {
+            git_clone https://github.com/tty228/luci-app-wechatpush luci-app-wechatpush
+            git_clone https://github.com/ZeaKyX/speedtest-web speedtest-web
+            git_clone https://github.com/ZeaKyX/luci-app-speedtest-web luci-app-speedtest-web
+            git_clone https://github.com/vernesong/OpenClash OpenClash
+            git_clone https://github.com/gSpotx2f/luci-app-cpu-status luci-app-cpu-status
+            git_clone https://github.com/ilxp/luci-app-ikoolproxy luci-app-ikoolproxy
+            git_clone https://github.com/EasyTier/luci-app-easytier luci-app-easytier
+            git_clone https://github.com/stackia/rtp2httpd rtp2httpd
+            git_clone https://github.com/jerrykuku/luci-app-argon-config luci-app-argon-config
+            git_clone https://github.com/jerrykuku/luci-theme-argon luci-theme-argon
+            git_clone https://github.com/gaoyaxuan/luci-app-pushbot luci-app-pushbot
+            git_clone https://github.com/nooblk-98/luci-app-netstat luci-app-netstat
+          } &
+
+          {
+            git_clone https://github.com/kenzok78/luci-app-adguardhome luci-app-adguardhome
+            git_clone https://github.com/pymumu/luci-app-smartdns luci-app-smartdns
+            git_clone https://github.com/pymumu/openwrt-smartdns smartdns
+            git_clone https://github.com/Openwrt-Passwall/openwrt-passwall2 openwrt-passwall2
+            git_clone https://github.com/Openwrt-Passwall/openwrt-passwall openwrt-passwall
+            git_clone https://github.com/timsaya/luci-app-bandix luci-app-bandix
+            git_clone https://github.com/timsaya/openwrt-bandix openwrt-bandix
+          } &
+
+          {
+            git clone --depth 1 https://github.com/kenzok8/jell jell_tmp
+            [ -d "jell_tmp" ] && {
+              mv -f jell_tmp/luci-app-aria2 opd/
+              mv -f jell_tmp/luci-app-ipsec-server opd/
+              mv -f jell_tmp/luci-app-pptpd opd/
+              mv -f jell_tmp/webdav2 opd/
+              mv -f jell_tmp/luci-app-msd_lite opd/
+              mv -f jell_tmp/luci-app-onliner opd/
+              mv -f jell_tmp/msd_lite opd/
+              mv -f jell_tmp/luci-app-control-timewol opd/
+              mv -f jell_tmp/luci-app-control-webrestriction opd/
+              mv -f jell_tmp/luci-app-control-weburl opd/
+              mv -f jell_tmp/unishare opd/
+              mv -f jell_tmp/luci-app-unishare opd/
+              mv -f jell_tmp/filebrowser opd/
+              mv -f jell_tmp/luci-app-filebrowser opd/
+              mv -f jell_tmp/upx opd/
+              mv -f jell_tmp/upx-static opd/
+              mv -f jell_tmp/luci-app-rtbwmon opd/
+            }
+            rm -rf jell_tmp
+          } &
+
+          {
+            echo "🔽 下载 openwrt-clashoo 全套"
+            git clone --depth 1 https://github.com/kenzok8/openwrt-clashoo clashoo_tmp
+            [ -d "clashoo_tmp" ] && {
+              mv -f clashoo_tmp/* opd/ 2>/dev/null || true
+            }
+            rm -rf clashoo_tmp
+          } &
+
+          # ✅ OpenAppFilter 已改成和 clashoo 完全一样的写法
+          {
+            echo "🔽 下载 OpenAppFilter"
+            git clone --depth 1 https://github.com/destan19/OpenAppFilter oaf_tmp
+            [ -d "oaf_tmp" ] && {
+              mv -f oaf_tmp/* opd/ 2>/dev/null || true
+            }
+            rm -rf oaf_tmp
+          } &
+
+          wait
+          echo "✅ 所有插件下载完成"
+
+          echo "🧹 清理冗余文件..."
+          find opd -name ".git*" -o -name "README*" -o -name "LICENSE" -o -name "docs" -o -name ".github" | xargs rm -rf 2>/dev/null || true
+
+      - name: 提交并推送更新 + 写入 README.md
+        run: |
+          touch README.md
+          
+          git add -A
+          CHANGES=$(git status --porcelain)
+          
+          if [ -n "$CHANGES" ]; then
+            echo "📤 检测到更新，开始提交"
+            echo "====================================="
+            echo "$CHANGES"
+            echo "====================================="
+
+            FILE_COUNT=$(echo "$CHANGES" | wc -l)
+            UPDATE_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+            UPDATE_PLUGINS=$(echo "$CHANGES" | awk '{print $2}' | grep '^opd/' | cut -d'/' -f2 | sort -u | head -15)
+
+            {
+              echo "## 📦 自用包AI最近自动更新"
+              echo "- 更新时间：$UPDATE_TIME"
+              echo "- 更新文件数：$FILE_COUNT"
+              echo "- 更新插件："
+              echo "$UPDATE_PLUGINS" | while read p; do echo "  - $p"; done
+              echo "---"
+              echo
+              cat README.md
+            } > README.tmp && mv README.tmp README.md
+
+            git add README.md
+            git commit -m "📦 自动更新 $UPDATE_TIME"
+            git push --force https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
+          else
+            echo "ℹ️ 无文件变更"
+            exit 0
+          fi
