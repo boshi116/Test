@@ -17,7 +17,7 @@ const LATENCY_WARN    = 300;    /* 延迟黄色阈值(ms) */
 
 const COLORS = {
     running:   '#20c997',   /* 运行中/绿色 */
-    stopped:   '#b58900',   /* 已停止/琥珀 */
+    stopped:   '#adb5bd',   /* 已停止/灰色 */
     primary:   '#4a76d4',   /* 主操作按钮 */
     secondary: '#adb5bd',   /* 次操作按钮 */
     success:   '#28a745',   /* 延迟正常 */
@@ -45,21 +45,21 @@ const START_STEPS = [
     '设置dns转发器 / 启用自定义DNS',
     '设置Cron → Clash 计划任务,启动进程守护程序...',
     '重启 Dnsmasq 程序',
-    'Clash 启动成功，请等待服务器上线！'
+    'Clashoo 启动成功，请等待服务器上线！'
 ];
 
 const STOP_STEPS = [
     '正在停止客户端...',
     '清理 mihomo 网络规则',
     '禁用dns缓存',
-    'Clash 停止进程守护程序',
+    'Clashoo 停止进程守护程序',
     '删除Cron',
     '重启 Dnsmasq 程序'
 ];
 
 const ACTION_MIN_VISIBLE_MS = 6000;
 const ACTION_STABLE_POLLS = 2;
-const ENABLE_AUTO_PROBE = false;
+const ENABLE_AUTO_PROBE = true;
 
 return view.extend({
     load: function () {
@@ -473,8 +473,7 @@ return view.extend({
             if (elAddr && (_firstRender || _prev.addrKey !== addrKey)) {
                 _prev.addrKey = addrKey;
                 elAddr.innerHTML = '';
-                let authSuffix = dashPass ? '?secret=' + encodeURIComponent(dashPass) : '';
-                let panelUrl   = 'http://' + localIp + ':' + dashPort + '/ui/' + authSuffix;
+                let panelUrl   = 'http://' + localIp + ':' + dashPort + '/ui/';
                 let grp = mkBtnGroup();
                 grp.appendChild(mkBtn('更新面板', COLORS.accent, () => clash.updatePanel(panelType)));
                 if (dashOk) {
@@ -591,7 +590,7 @@ return view.extend({
             for (let site of PROBE_SITES)
                 gridInit.appendChild(renderProbeCard(site));
         }
-        /* 连接测试默认不自动探测，避免切页时被慢 RPC 阻塞 */
+        /* 连接测试默认自动探测，进入页面后会持续刷新延迟 */
         if (ENABLE_AUTO_PROBE) {
             setTimeout(function() {
                 if (!document.contains(node)) return;
