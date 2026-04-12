@@ -304,135 +304,126 @@ return view.extend({
             };
         }
 
-        /* ─── 复写设置 ─── */
+        /* ─── 模板复写设置 ─── */
         s = m.section(form.NamedSection, 'config', 'clash', _('复写设置'));
         s.anonymous = false;
         s.render = function () {
-            var allRewriteFiles = []
-                .concat((subFileData.files || []).map(function (f) { return f.name; }))
-                .concat(uploadFiles.map(function (f) { return f.name; }))
-                .concat(customFiles.map(function (f) { return f.name; }));
-
-            var rowStyle = 'display:flex;align-items:center;margin:8px 0';
-            var labelStyle = 'min-width:100px;flex-shrink:0;font-weight:500';
-            var inputGroupStyle = 'display:flex;align-items:center;gap:8px;flex:1;flex-wrap:wrap';
-
-            /* ── 复写来源切换 ── */
-            var srcMode = E('select', { class: 'cbi-input-select', style: 'min-width:140px' }, [
-                E('option', { value: 'local' }, _('本地文件')),
-                E('option', { value: 'remote' }, _('远程拉取'))
-            ]);
-
-            /* 本地文件选择 */
-            var localFile = E('select', { class: 'cbi-input-select', style: 'min-width:200px;flex:1;max-width:360px' });
-            if (!allRewriteFiles.length) {
-                localFile.appendChild(E('option', { value: '' }, _('无可用文件')));
-                localFile.disabled = true;
-            } else {
-                allRewriteFiles.forEach(function (n) { localFile.appendChild(E('option', { value: n }, n)); });
+            if (!document.getElementById('clashoo-rewrite-style')) {
+                document.head.appendChild(E('style', { id: 'clashoo-rewrite-style' }, `
+                    .clashoo-rewrite .rw-input { width: 320px; max-width: 100%; min-width: 0; box-sizing: border-box; }
+                    .clashoo-rewrite .rw-inline { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; max-width: 100%; }
+                    .clashoo-rewrite .rw-btn { flex: 0 0 auto; white-space: nowrap; }
+                    .clashoo-rewrite .rw-output { width: 100%; max-width: 320px; text-align: right; color: #7f8a98; }
+                    .clashoo-rewrite .rw-actions { width: 100%; display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+                    @media (max-width: 1100px), (hover: none) and (pointer: coarse) {
+                        .clashoo-rewrite .cbi-value-title { width: 100% !important; margin-bottom: 6px; }
+                        .clashoo-rewrite .cbi-value-field { width: 100% !important; }
+                        .clashoo-rewrite .rw-input { width: 100% !important; min-width: 0; }
+                        .clashoo-rewrite .rw-inline { display: block; }
+                        .clashoo-rewrite .rw-inline .rw-btn { margin-top: 8px; width: 100%; text-align: center; }
+                        .clashoo-rewrite .rw-actions { max-width: 100%; width: 100%; justify-content: space-between; }
+                        .clashoo-rewrite .rw-actions .btn { flex: 1 1 calc(50% - 6px); text-align: center; }
+                    }
+                `));
             }
 
-            /* 本地上传 */
-            var uploadInput = E('input', { type: 'file', accept: '.yaml,.yml', style: 'max-width:240px' });
-            var uploadBtn = E('button', {
-                type: 'button', class: 'btn cbi-button cbi-button-action', style: 'white-space:nowrap'
-            }, _('上传'));
+            let subs = (subData.subs || []).map(function (x) { return x.name; });
+            let templates = (customData.files || [])
+                .map(function (f) { return f.name; })
+                .filter(function (name) { return !/^_merged_/.test(name); });
+
+            let subSel = E('select', { class: 'cbi-input-select rw-input' },
+                subs.length ? subs.map(function (n, i) { return E('option', { value: n, selected: i === 0 }, n); })
+                            : [E('option', { value: '' }, _('暂无订阅'))]
+            );
+
+            let templateSel = E('select', { class: 'cbi-input-select rw-input' },
+                [E('option', { value: '' }, _('请选择模板文件'))].concat(
+                    templates.map(function (n, i) { return E('option', { value: n, selected: i === 0 }, n); })
+                )
+            );
+
+            let outputHint = E('div', { style: 'margin-top:6px;color:#666;font-size:.9rem' }, '');
+            function stripExt(name) { return String(name || '').replace(/\.(yaml|yml)$/i, ''); }
+            function outputName() {
+                let a = stripExt(subSel.value);
+                let t = stripExt(templateSel.value);
+                if (!a || !t) return '';
+                return a + '_' + t + '.yaml';
+            }
+            function refreshOutputHint() {
+                let out = outputName();
+                outputHint.textContent = out ? out : _('请先选择订阅和模板');
+            }
+            subSel.addEventListener('change', refreshOutputHint);
+            templateSel.addEventListener('change', refreshOutputHint);
+
+            function addTemplateOption(name) {
+                if (!name) return;
+                let exists = Array.prototype.some.call(templateSel.options, function (o) { return o.value === name; });
+                if (!exists) templateSel.appendChild(E('option', { value: name }, name));
+                templateSel.value = name;
+                refreshOutputHint();
+            }
+
+            let uploadInput = E('input', { type: 'file', accept: '.yaml,.yml', class: 'rw-input' });
+            let uploadBtn = E('button', { type: 'button', class: 'btn cbi-button cbi-button-action rw-btn' }, _('上传模版'));
             uploadBtn.addEventListener('click', function () {
-                var files = uploadInput.files;
-                if (!files || !files.length) { setPageStatus(_('请选择文件'), false); return; }
-                var file = files[0];
-                setPageStatus(_('上传中…'), true);
-                var reader = new FileReader();
+                let files = uploadInput.files;
+                if (!files || !files.length) { setPageStatus(_('请选择模板文件'), false); return; }
+                let file = files[0];
+                setPageStatus(_('上传模板中...'), true);
+                let reader = new FileReader();
                 reader.onload = function (ev) {
-                    callUploadConfig(file.name, ev.target.result, '2').then(function (r) {
+                    callUploadConfig(file.name, ev.target.result, '3').then(function (r) {
                         if (r && r.success) {
-                            setPageStatus(_('上传成功：') + file.name, true);
-                            setTimeout(function () { location.reload(); }, 1000);
+                            addTemplateOption(r.name || file.name);
+                            setPageStatus(_('模板上传成功：') + (r.name || file.name), true);
                         } else {
-                            setPageStatus(_('上传失败'), false);
+                            setPageStatus((r && (r.message || r.error)) || _('模板上传失败'), false);
                         }
-                    }).catch(function () { setPageStatus(_('上传失败'), false); });
+                    }).catch(function (e) {
+                        setPageStatus(_('模板上传失败: ') + (e && e.message ? e.message : e), false);
+                    });
                 };
                 reader.readAsText(file);
             });
 
-            /* 远程拉取 */
-            var remoteUrl = E('input', {
-                type: 'text', class: 'cbi-input-text', style: 'flex:1;min-width:200px',
-                placeholder: 'https://example.com/rewrite.yaml'
+            let remoteUrl = E('input', {
+                type: 'text', class: 'cbi-input-text rw-input',
+                placeholder: 'https://example.com/fx.yaml'
             });
-            var remoteName = E('input', {
-                type: 'text', class: 'cbi-input-text',
-                placeholder: _('文件名（可选）'), style: 'width:160px;flex-shrink:0'
+            let remoteName = E('input', {
+                type: 'text', class: 'cbi-input-text rw-input',
+                placeholder: _('模板文件名（可选）')
             });
-            var remoteBtn = E('button', {
-                type: 'button', class: 'btn cbi-button cbi-button-action', style: 'white-space:nowrap'
-            }, _('拉取'));
+            let remoteBtn = E('button', { type: 'button', class: 'btn cbi-button cbi-button-action rw-btn' }, _('拉取模版'));
             remoteBtn.addEventListener('click', function () {
-                var url = (remoteUrl.value || '').trim();
-                if (!url) { setPageStatus(_('请输入 URL'), false); return; }
-                setPageStatus(_('正在拉取复写文件...'), true);
+                let url = (remoteUrl.value || '').trim();
+                if (!url) { setPageStatus(_('请输入模板 URL'), false); return; }
+                setPageStatus(_('正在拉取模板...'), true);
                 callFetchRewriteUrl(url, (remoteName.value || '').trim()).then(function (r) {
                     if (r && r.success) {
-                        setPageStatus((r.message || _('拉取成功')) + '，页面将自动刷新', true);
-                        setTimeout(function () { location.reload(); }, 1000);
+                        addTemplateOption(r.name || '');
+                        setPageStatus((r.message || _('模板拉取成功')), true);
                     } else {
-                        setPageStatus((r && (r.message || r.error)) || _('拉取失败'), false);
+                        setPageStatus((r && (r.message || r.error)) || _('模板拉取失败'), false);
                     }
                 }).catch(function (e) {
-                    setPageStatus(_('拉取失败: ') + (e && e.message ? e.message : e), false);
+                    setPageStatus(_('模板拉取失败: ') + (e && e.message ? e.message : e), false);
                 });
             });
 
-            /* 本地/远程行容器 */
-            var localRow = E('div', { style: rowStyle }, [
-                E('span', { style: labelStyle }, _('选择文件')),
-                E('div', { style: inputGroupStyle }, [ localFile, uploadInput, uploadBtn ])
-            ]);
-            var remoteRow = E('div', { style: rowStyle + ';display:none' }, [
-                E('span', { style: labelStyle }, _('远程 URL')),
-                E('div', { style: inputGroupStyle }, [ remoteUrl, remoteName, remoteBtn ])
-            ]);
-
-            srcMode.addEventListener('change', function () {
-                var isRemote = srcMode.value === 'remote';
-                localRow.style.display = isRemote ? 'none' : '';
-                remoteRow.style.display = isRemote ? '' : 'none';
-            });
-
-            /* ── 应用复写 ── */
-            var setActive = E('input', { type: 'checkbox', checked: true });
-            var applyBtn = E('button', {
-                type: 'button', class: 'btn cbi-button cbi-button-apply'
-            }, _('应用复写'));
-
+            let applyBtn = E('button', { type: 'button', class: 'btn cbi-button cbi-button-apply' }, _('生成文件'));
             applyBtn.addEventListener('click', function () {
-                var rn = '';
-                if (srcMode.value === 'local') {
-                    rn = localFile.value || '';
-                    if (!rn) { setPageStatus(_('请选择复写文件'), false); return; }
-                } else {
-                    setPageStatus(_('请先拉取远程文件，再选择本地文件应用'), false);
-                    return;
-                }
-                if (!activeName) { setPageStatus(_('当前无活动配置，请先设置配置文件'), false); return; }
-
-                setPageStatus(_('正在将复写应用到当前配置...'), true);
-                /* base = 当前活动配置, rewrite = 选中的文件 */
-                var bn = activeName;
-                var bt;
-                if ((subFileData.files || []).some(function(f){ return f.name === bn; })) bt = '1';
-                else if (uploadFiles.some(function(f){ return f.name === bn; })) bt = '2';
-                else bt = '3';
-                /* 判断复写文件来源类型 */
-                var rt = '3';
-                if ((subFileData.files || []).some(function (f) { return f.name === rn; })) rt = '1';
-                else if (uploadFiles.some(function (f) { return f.name === rn; })) rt = '2';
-
-                callApplyRewrite(bt, bn, rt, rn, '', setActive.checked ? '1' : '0').then(function (r) {
+                if (!subSel.value) { setPageStatus(_('请先选择订阅'), false); return; }
+                if (!templateSel.value) { setPageStatus(_('请先选择模板文件'), false); return; }
+                let out = outputName();
+                setPageStatus(_('正在生成：') + out, true);
+                callApplyRewrite('1', subSel.value, '3', templateSel.value, out, '0').then(function (r) {
                     if (r && r.success) {
-                        setPageStatus(r.message || _('复写成功'), true);
-                        setTimeout(function () { location.reload(); }, 1200);
+                        setPageStatus((r.message || (_('生成成功：') + out)), true);
+                        setTimeout(function () { location.reload(); }, 900);
                     } else {
                         setPageStatus((r && (r.message || r.error)) || _('复写失败'), false);
                     }
@@ -441,29 +432,49 @@ return view.extend({
                 });
             });
 
-            return Promise.resolve(E('div', { class: 'cbi-section' }, [
+            let applyActivateBtn = E('button', { type: 'button', class: 'btn cbi-button cbi-button-action' }, _('生成并启用'));
+            applyActivateBtn.addEventListener('click', function () {
+                if (!subSel.value) { setPageStatus(_('请先选择订阅'), false); return; }
+                if (!templateSel.value) { setPageStatus(_('请先选择模板文件'), false); return; }
+                let out = outputName();
+                setPageStatus(_('正在生成并启用：') + out, true);
+                callApplyRewrite('1', subSel.value, '3', templateSel.value, out, '1').then(function (r) {
+                    if (r && r.success) {
+                        setPageStatus((r.message || (_('生成并启用成功：') + out)), true);
+                        setTimeout(function () { location.reload(); }, 900);
+                    } else {
+                        setPageStatus((r && (r.message || r.error)) || _('复写失败'), false);
+                    }
+                }).catch(function (e) {
+                    setPageStatus(_('复写失败: ') + (e && e.message ? e.message : e), false);
+                });
+            });
+
+            refreshOutputHint();
+
+            function cbiRow(title, fieldNode, descNode) {
+                let fieldChildren = [fieldNode];
+                if (descNode)
+                    fieldChildren.push(descNode);
+                return E('div', { class: 'cbi-value' }, [
+                    E('label', { class: 'cbi-value-title' }, title || ''),
+                    E('div', { class: 'cbi-value-field' }, fieldChildren)
+                ]);
+            }
+
+            return Promise.resolve(E('div', { class: 'cbi-section clashoo-rewrite' }, [
                 E('h3', {}, _('复写设置')),
                 E('p', { class: 'cbi-value-description', style: 'margin:0 10px 10px' },
-                    _('用自定义配置覆盖当前配置。复写文件可从本地上传或远程拉取。')),
-
-                activeName
-                    ? E('div', { style: 'margin:0 10px 12px;padding:8px 12px;border-radius:6px;background:' + (isDark ? '#1a2332' : '#f0f7ff') + ';font-size:.92rem' },
-                        _('当前配置：') + E('strong', {}, activeName).outerHTML)
-                    : E('div', { style: 'margin:0 10px 12px;padding:8px 12px;border-radius:6px;background:' + (isDark ? '#2d1f1f' : '#fff5f5') + ';color:' + (isDark ? '#fca5a5' : '#991b1b') + ';font-size:.92rem' },
-                        _('未设置活动配置，请先在上方选择配置文件')),
-
-                E('div', { style: rowStyle + ';padding:0 10px;box-sizing:border-box' }, [
-                    E('span', { style: labelStyle }, _('复写来源')),
-                    E('div', { style: inputGroupStyle }, [ srcMode ])
-                ]),
-                E('div', { style: 'padding:0 10px;box-sizing:border-box' }, [localRow]),
-                E('div', { style: 'padding:0 10px;box-sizing:border-box' }, [remoteRow]),
-                E('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:14px 10px 0;padding:10px 0 0;border-top:1px solid ' + (isDark ? '#3a404c' : '#e5e7eb') }, [
-                    E('label', { style: 'display:flex;align-items:center;gap:6px;user-select:none;cursor:pointer' }, [
-                        setActive, _('应用后设为当前配置')
-                    ]),
-                    applyBtn
-                ])
+                    _('模板复写仅两步：上传/拉取模板，然后对订阅应用复写并生成新文件（示例：a.yaml + fx.yaml = a_fx.yaml）。')),
+                cbiRow(_('订阅文件'), subSel),
+                cbiRow(_('模板选择'), templateSel),
+                cbiRow(_('本地上传'), E('div', { class: 'rw-inline' }, [uploadInput, uploadBtn])),
+                cbiRow(_('远程拉取'), E('div', { class: 'rw-inline' }, [remoteUrl, remoteBtn])),
+                cbiRow(_('模板文件名'), remoteName),
+                cbiRow(_('生成文件名'), E('div', { class: 'rw-output' }, [outputHint])),
+                cbiRow('', E('div', { style: 'display:block;width:100%;color:#7f8a98;font-size:12px;line-height:1.5;text-align:center' },
+                    _('生成文件：仅写入新文件；生成并启用：写入后立即切换生效。'))),
+                cbiRow(_('应用操作'), E('div', { class: 'rw-actions' }, [applyBtn, applyActivateBtn]))
             ]));
         };
 
@@ -539,9 +550,7 @@ return view.extend({
 
     handleSaveApply: function (ev) {
         return this.handleSave(ev).then(function () {
-            return Promise.resolve(ui.changes.apply(true)).then(function () {
-                return clash.restart();
-            });
+            return Promise.resolve(ui.changes.apply(true));
         });
     },
 
