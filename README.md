@@ -1,7 +1,8 @@
 ## 📦 自用包AI最近自动更新
-- 更新时间：2026-04-13 21:26:49
-- 更新文件数：5
+- 更新时间：2026-04-14 00:13:10
+- 更新文件数：7
 - 更新插件：
-  - openwrt-passwall2
+  - luci-app-ipsec-server
+  - openwrt-passwall
 ---
 
