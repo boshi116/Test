@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=clashoo
-PKG_SHORT_SHA:=6fb9d9e
+PKG_SHORT_SHA:=9613f02
 PKG_COMMIT_DATE:=2026.04.13
 
 PKG_VERSION:=$(PKG_COMMIT_DATE)~$(PKG_SHORT_SHA)
@@ -12,8 +12,8 @@ PKG_SOURCE_SUBDIR:=$(PKG_NAME)-alpha-$(PKG_SHORT_SHA)
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-alpha-$(PKG_SHORT_SHA)
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/MetaCubeX/mihomo.git
-PKG_SOURCE_VERSION:=6fb9d9e4337c471a522669462ef2def36ab1dccf
-PKG_MIRROR_HASH:=d509408ee91e0ccaf95c4b694d937663366fc1f1d4a71ec57b2fe4c056f953c0
+PKG_SOURCE_VERSION:=9613f02a05caea1e4949e3d626ae53a60e85e25c
+PKG_MIRROR_HASH:=2e01fd7cc508b5f9d037db3fe411283b6df3033c02eaae8054449220fafeee05
 PKG_BUILD_VERSION:=alpha-$(PKG_SHORT_SHA)
 
 PKG_LICENSE:=GPL3.0+
@@ -61,6 +61,11 @@ define Package/clashoo/install
 	$(INSTALL_DIR) $(1)/etc/clash/proxyprovider
 	$(INSTALL_DIR) $(1)/etc/clash/ruleprovider
 	$(INSTALL_DIR) $(1)/usr/share/clash
+	$(INSTALL_DIR) $(1)/usr/share/clash/runtime
+	$(INSTALL_DIR) $(1)/usr/share/clash/update
+	$(INSTALL_DIR) $(1)/usr/share/clash/net
+	$(INSTALL_DIR) $(1)/usr/share/clash/rpc
+	$(INSTALL_DIR) $(1)/usr/share/clash/lib
 	$(INSTALL_DIR) $(1)/usr/share/clashbackup
 	$(INSTALL_DIR) $(1)/usr/share/clash/config
 	$(INSTALL_DIR) $(1)/usr/share/clash/config/sub
@@ -82,6 +87,10 @@ define Package/clashoo/postinst
 #!/bin/sh
 if [ -z "${IPKG_INSTROOT}" ]; then
 	[ -x /usr/bin/mihomo ] && [ ! -x /usr/bin/clash-meta ] && ln -sf /usr/bin/mihomo /usr/bin/clash-meta
+	rm -f /usr/share/clash/check_luci_version.sh /usr/share/clash/check_clash_meta_version.sh /usr/share/clash/check_mihomo_core_version.sh
+	rm -f /usr/share/clash/cuslist.sh /usr/share/clash/groups.sh /usr/share/clash/load_groups.sh /usr/share/clash/panel_diag.sh
+	rm -f /usr/share/clash/rmlist.sh /usr/share/clash/uplist.sh /usr/share/clash/rpc_restart_async.sh /usr/share/clash/rpc_update_china_ip_async.sh
+	rm -rf /usr/share/clash/create
 	/etc/init.d/clash disable 2>/dev/null
 fi
 exit 0
