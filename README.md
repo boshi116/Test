@@ -1,21 +1,7 @@
 ## 📦 自用包AI最近自动更新
-- 更新时间：2026-04-19 23:37:27
-- 更新文件数：28
+- 更新时间：2026-04-20 02:52:20
+- 更新文件数：18
 - 更新插件：
-  - clashoo
-  - clashoo-config-dns.png
-  - clashoo-config-dns2.png
-  - clashoo-config-dns3.png
-  - clashoo-config-proxy.png
-  - clashoo-config-proxy2.png
-  - clashoo-config-subs.png
-  - clashoo-overview-final.png
-  - clashoo-proxy-auth-add.png
-  - config-mihomo.png
-  - config-proxy-smart.png
-  - config-singbox.png
-  - config-wizard.png
-  - demo-flow.html
-  - luci-app-clashoo
+  - openwrt-passwall2
 ---
 
