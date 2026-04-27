@@ -1,9 +1,7 @@
 ## 📦 自用包AI最近自动更新
-- 更新时间：2026-04-27 05:38:18
-- 更新文件数：24
+- 更新时间：2026-04-27 10:47:25
+- 更新文件数：1
 - 更新插件：
-  - luci-app-control-timewol
-  - luci-app-control-webrestriction
-  - luci-app-control-weburl
+  - 
 ---
 
