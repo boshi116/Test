@@ -47,7 +47,8 @@ jobs:
           git_clone() {
             local repo="$1"
             local dir="$2"
-
+            echo "🔽 下载 → opd/$dir"
+            git clone --depth 1 "$repo" "opd/$dir"
           }
 
           echo "🚀 开始并行下载所有插件..."
