@@ -1,21 +1,7 @@
 ## 📦 自用包AI最近自动更新
-- 更新时间：2026-04-29 10:25:38
-- 更新文件数：1316
+- 更新时间：2026-04-29 10:53:05
+- 更新文件数：1
 - 更新插件：
-  - OpenClash
-  - aria2
-  - autoshare
-  - luci-app-adguardhome
-  - luci-app-advancedplus
-  - luci-app-argon-config
-  - luci-app-bandix
-  - luci-app-cpu-status
-  - luci-app-dnsfilter
-  - luci-app-easytier
-  - luci-app-eqosplus
-  - luci-app-ikoolproxy
-  - luci-app-lucky
-  - luci-app-mosdns
-  - luci-app-netstat
+  - 
 ---
 
