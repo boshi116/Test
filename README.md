@@ -1,7 +1,10 @@
 ## 📦 自用包AI最近自动更新
-- 更新时间：2026-05-01 11:24:54
-- 更新文件数：13
+- 更新时间：2026-05-01 16:11:36
+- 更新文件数：39
 - 更新插件：
-  - luci-app-mosdns
+  - clashoo
+  - luci-app-clashoo
+  - openwrt-passwall
+  - openwrt-passwall2
 ---
 
