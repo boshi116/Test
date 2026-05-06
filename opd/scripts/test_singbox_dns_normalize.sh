@@ -28,6 +28,7 @@ cat > "$tmp/config.json" <<'JSON'
       { "tag": "cn", "type": "remote", "format": "binary", "url": "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo/geosite/cn.srs", "download_detour": "DIRECT" }
     ],
     "rules": [
+      { "port": [853], "outbound": "DIRECT" },
       { "rule_set": ["geolocation-cn", "cn"], "outbound": "DIRECT" }
     ]
   },
@@ -48,6 +49,7 @@ config clashoo 'config'
   list default_nameserver '223.5.5.5'
   option dns_ecs '223.5.5.0/24'
   option singbox_independent_cache '0'
+  option dns_leak_protect '1'
 
 config dnsservers
   option enabled '1'
@@ -69,17 +71,22 @@ ucode "$UCODE" "$tmp/config.json" 7891 7982 7890 1 6666 1053 9191 secret "$tmp/c
 grep -q '\"client_subnet\": \"223.5.5.0/24\"' "$tmp/config.json"
 ! grep -q '\"independent_cache\"' "$tmp/config.json"
 grep -q '\"tag\": \"dns_direct\"' "$tmp/config.json"
+grep -q '\"final\": \"dns_direct\"' "$tmp/config.json"
+grep -q '\"query_type\": \[ \"AAAA\" \], \"action\": \"reject\", \"method\": \"drop\"' "$tmp/config.json"
 grep -q '\"type\": \"tls\", \"tag\": \"dns_proxy\", \"server\": \"1.1.1.1\", \"server_port\": 853' "$tmp/config.json"
 grep -q '\"inbound\": \"dns-in\", \"action\": \"hijack-dns\"' "$tmp/config.json"
+grep -q '\"port\": \[ 853 \], \"action\": \"reject\"' "$tmp/config.json"
 grep -q '\"tag\": \"dns_resolver\", \"server\": \"223.5.5.5\", \"detour\": \"direct\"' "$tmp/config.json"
 if ip tuntap add mode tun name cotuntest >/dev/null 2>&1; then
   ip link del cotuntest >/dev/null 2>&1 || true
-  grep -q '\"type\": \"tun\", \"tag\": \"tun-in\", \"address\": \[ \"172.19.0.1/30\", \"fdfe:dcba:9876::1/126\" \], \"auto_route\": true, \"strict_route\": true, \"stack\": \"mixed\"' "$tmp/config.json"
+  grep -q '\"type\": \"tun\", \"tag\": \"tun-in\", \"address\": \[ \"172.19.0.1/30\", \"fdfe:dcba:9876::1/126\" \], \"auto_route\": true, \"auto_redirect\": true, \"strict_route\": true, \"stack\": \"mixed\"' "$tmp/config.json"
 else
   ! grep -q '\"type\": \"tun\", \"tag\": \"tun-in\"' "$tmp/config.json"
 fi
-grep -q '\"tag\": \"geolocation-cn\", \"type\": \"remote\", \"format\": \"binary\", \"url\": \"https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo/geosite/geolocation-cn.srs\", \"download_detour\": \"direct\"' "$tmp/config.json"
-grep -q '\"tag\": \"cn\", \"type\": \"remote\", \"format\": \"binary\", \"url\": \"https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo/geosite/cn.srs\", \"download_detour\": \"direct\"' "$tmp/config.json"
+grep -q '\"tag\": \"geolocation-cn\"' "$tmp/config.json"
+grep -Eq '\"tag\": \"geolocation-cn\", \"type\": \"(remote|local)\"' "$tmp/config.json"
+grep -q '\"tag\": \"cn\"' "$tmp/config.json"
+grep -Eq '\"tag\": \"cn\", \"type\": \"(remote|local)\"' "$tmp/config.json"
 grep -q '\"tag\": \"geolocation-!cn\"' "$tmp/config.json"
 grep -q '\"rule_set\": \"geolocation-!cn\", \"server\": \"dns_fakeip\"' "$tmp/config.json"
 grep -q '\"rule_set\": \[ \"geolocation-cn\", \"cn\" \], \"outbound\": \"DIRECT\"' "$tmp/config.json"

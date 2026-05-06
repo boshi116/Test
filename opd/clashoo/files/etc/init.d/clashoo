@@ -6,6 +6,8 @@ STOP=15
 
 CORE_LOG_PATH="/var/log/clashoo/core.log"
 
+. /usr/share/clashoo/runtime/dns_helpers.sh 2>/dev/null || true
+
 command_exists() {
 	command -v "$1" >/dev/null 2>&1
 }
@@ -1217,7 +1219,26 @@ _has_valid_local_mmdb() {
 }
 
 _config_needs_geosite() {
-	grep -Eq "^[[:space:]]*-[[:space:]]*[\"']?GEOSITE,|^[[:space:]]*geosite:[[:space:]]|^[[:space:]]*'geosite:" "$CONFIG_YAML"
+	grep -Eq "^[[:space:]]*-[[:space:]]*[\"']?GEOSITE,|^[[:space:]]*geosite:[[:space:]]*|^[[:space:]]*'geosite:" "$CONFIG_YAML"
+}
+
+_has_valid_local_geosite() {
+	local site_file site_size
+
+	for site_file in /etc/clashoo/GeoSite.dat /etc/clashoo/geosite.dat; do
+		[ -f "$site_file" ] || continue
+		site_size=$(wc -c <"$site_file" 2>/dev/null)
+		[ -n "$site_size" ] || continue
+		if [ "$site_size" -ge 2000000 ]; then
+			if [ "$site_file" = "/etc/clashoo/geosite.dat" ]; then
+				cp -f "$site_file" /etc/clashoo/GeoSite.dat >/dev/null 2>&1 || true
+				chmod 644 /etc/clashoo/GeoSite.dat >/dev/null 2>&1 || true
+			fi
+			return 0
+		fi
+	done
+
+	return 1
 }
 
 _strip_geox_url_block() {
@@ -1305,7 +1326,7 @@ _prepare_geo_bootstrap_mode() {
 		rm -f /etc/clashoo/geoip.metadb >/dev/null 2>&1
 		log_msg "GeoIP database is invalid or incomplete, fallback to bootstrap mode" "GeoIP 数据库无效或下载不完整，已回退到引导模式"
 	fi
-	[ "$needs_geosite" -eq 1 ] && [ -f /etc/clashoo/geosite.dat ] && needs_geosite=0
+	[ "$needs_geosite" -eq 1 ] && _has_valid_local_geosite && needs_geosite=0
 
 	if [ "$needs_mmdb" -eq 0 ] && [ "$needs_geosite" -eq 0 ]; then
 		return 0
@@ -1322,6 +1343,7 @@ _prepare_geo_bootstrap_mode() {
 	fi
 
 	if [ "$needs_geosite" -eq 1 ]; then
+		rm -f /etc/clashoo/GeoSite.dat /etc/clashoo/geosite.dat >/dev/null 2>&1
 		_strip_yaml_rule_lines "^[[:space:]]*-[[:space:]]*[\"']?GEOSITE,"
 		_strip_yaml_child_block '^[[:space:]]*geosite:[[:space:]]*$'
 		_strip_yaml_child_block "^[[:space:]]*'geosite:[^']*'[[:space:]]*:[[:space:]]*$"
@@ -1429,6 +1451,21 @@ _start_prepare_config() {
 	fi
 
 	yml_change >/dev/null 2>&1
+	dns_leak_protect=$(uci -q get clashoo.config.dns_leak_protect 2>/dev/null)
+	if command -v dns_mihomo_apply_leak_protect >/dev/null 2>&1; then
+		# dns_leak_protect=1 强制 ipv6: false；否则按 UCI enable_ipv6 收敛（true/false），未配置则不强制写
+		if [ "${dns_leak_protect:-0}" = "1" ]; then
+			_ipv6_value="false"
+		else
+			case "$(uci -q get clashoo.config.enable_ipv6 2>/dev/null)" in
+				true|1) _ipv6_value="true" ;;
+				false|0) _ipv6_value="false" ;;
+				*) _ipv6_value="" ;;
+			esac
+		fi
+		dns_mihomo_apply_leak_protect "$CONFIG_YAML" "${dns_leak_protect:-0}" "$_ipv6_value" >/dev/null 2>&1
+		unset _ipv6_value
+	fi
 	smart_inject >/dev/null 2>&1
 
 	if ! _has_valid_local_mmdb; then
