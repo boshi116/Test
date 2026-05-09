@@ -1,8 +1,9 @@
 ## 📦 自用包AI最近自动更新
-- 更新时间：2026-05-09 13:49:12
-- 更新文件数：7
+- 更新时间：2026-05-09 15:56:38
+- 更新文件数：10
 - 更新插件：
   - clashoo
-  - openwrt-passwall
+  - luci-app-clashoo
+  - luci-theme-argon
 ---
 
