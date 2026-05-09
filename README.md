@@ -1,7 +1,9 @@
 ## 📦 自用包AI最近自动更新
-- 更新时间：2026-05-09 18:04:58
+- 更新时间：2026-05-09 21:18:08
 - 更新文件数：7
 - 更新插件：
-  - rtp2httpd
+  - clashoo
+  - luci-app-clashoo
+  - openwrt-passwall
 ---
 
