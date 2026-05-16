@@ -1,8 +1,8 @@
 ## 📦 自用包AI最近自动更新
-- 更新时间：2026-05-16 10:53:46
-- 更新文件数：14
+- 更新时间：2026-05-16 13:55:19
+- 更新文件数：13
 - 更新插件：
-  - luci-app-easytier
-  - luci-app-mosdns
+  - clashoo
+  - openwrt-passwall
 ---
 
